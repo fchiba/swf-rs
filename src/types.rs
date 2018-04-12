@@ -106,7 +106,7 @@ pub enum Language {
     TraditionalChinese,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FileAttributes {
     pub use_direct_blit: bool,
     pub use_gpu: bool,
@@ -115,7 +115,7 @@ pub struct FileAttributes {
     pub use_network_sandbox: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FrameLabel {
     pub frame_num: u32,
     pub label: String,
@@ -125,7 +125,7 @@ pub type Depth = i16;
 pub type CharacterId = u16;
 pub type Twips = i32;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PlaceObject {
     pub version: u8,
     pub action: PlaceObjectAction,
@@ -307,7 +307,7 @@ pub enum ClipEvent {
 
 pub type ClipEventFlags = HashSet<ClipEvent>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Tag {
     ExportAssets(Vec<ExportedAsset>),
     ScriptLimits {
@@ -412,7 +412,7 @@ pub struct SymbolClassLink {
     pub class_name: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Shape {
     pub version: u8,
     pub id: CharacterId,
@@ -460,7 +460,7 @@ pub struct SoundEnvelopePoint {
     pub right_volume: f32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Sprite {
     pub id: CharacterId,
     pub num_frames: u16,
