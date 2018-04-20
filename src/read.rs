@@ -702,7 +702,7 @@ impl<R: Read> Reader<R> {
             }
 
             Some(TagCode::Protect) => {
-                tag_reader.read_u16()?; // Two null bytes? Not specified in SWF19.
+                // tag_reader.read_u16()?; // Two null bytes? Not specified in SWF19.
                 Tag::Protect(if length > 0 {
                     Some(tag_reader.read_c_string()?)
                 } else {
