@@ -1049,6 +1049,12 @@ impl<R: Read> Reader<R> {
             } else {
                 self.read_u16()?;
             }
+        } else {
+            if has_wide_offsets {
+                self.read_u32();
+            } else {
+                self.read_u16();
+            }
         }
 
         // ShapeTable
