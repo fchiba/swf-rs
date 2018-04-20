@@ -9,6 +9,10 @@ pub struct Reader<R: Read> {
 }
 
 impl<R: Read> SwfRead<R> for Reader<R> {
+    fn get_version(&self) -> u8 {
+        self.version
+    }
+    
     fn get_inner(&mut self) -> &mut R {
         &mut self.inner
     }

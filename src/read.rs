@@ -59,6 +59,8 @@ fn read_swf_header<'a, R: Read + 'a>(mut input: R) -> Result<(Swf, Reader<Box<Re
 }
 
 pub trait SwfRead<R: Read> {
+    fn get_version(&self) -> u8;
+    
     fn get_inner(&mut self) -> &mut R;
 
     fn read_u8(&mut self) -> Result<u8> {
@@ -120,9 +122,19 @@ pub trait SwfRead<R: Read> {
         }
         // TODO: There is probably a better way to do this.
         // TODO: Verify ANSI for SWF 5 and earlier.
-        String::from_utf8(bytes).map_err(|_| {
-            Error::new(ErrorKind::InvalidData, "Invalid string data")
-        })
+        if self.get_version() < 6 {
+            use encoding_rs::SHIFT_JIS;
+            let (string, _, had_errors) = SHIFT_JIS.decode(&bytes);
+            if had_errors {
+                Err(Error::new(ErrorKind::InvalidData, format!("Invalid string data {:?}", bytes)))
+            } else {
+                Ok(string.to_string())
+            }
+        } else {
+            String::from_utf8(bytes).map_err(|bytes| {
+                Error::new(ErrorKind::InvalidData, format!("Invalid string data {:?}", bytes))
+            })
+        }
     }
 }
 
@@ -138,6 +150,10 @@ pub struct Reader<R: Read> {
 }
 
 impl<R: Read> SwfRead<R> for Reader<R> {
+    fn get_version(&self) -> u8 {
+        self.version
+    }
+    
     fn get_inner(&mut self) -> &mut R {
         &mut self.input
     }
