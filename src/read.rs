@@ -1043,10 +1043,12 @@ impl<R: Read> Reader<R> {
         }
 
         // CodeTableOffset
-        if has_wide_offsets {
-            self.read_u32()?;
-        } else {
-            self.read_u16()?;
+        if num_glyphs != 0 {
+            if has_wide_offsets {
+                self.read_u32()?;
+            } else {
+                self.read_u16()?;
+            }
         }
 
         // ShapeTable
