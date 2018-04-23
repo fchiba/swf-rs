@@ -37,173 +37,220 @@ impl<R: Read> Reader<R> {
     pub fn read_action(&mut self) -> Result<Option<Action>> {
         let (opcode, length) = try!(self.read_opcode_and_length());
 
-        let mut action_reader = Reader::new(self.inner.by_ref().take(length as u64), self.version);
+        let mut action;
+        let mut code_length = 0; // for DefineFunction / DefineFunction2
+        {
+            let mut action_reader = Reader::new(self.inner.by_ref().take(length as u64), self.version);
 
-        use num::FromPrimitive;
-        let action = if let Some(op) = OpCode::from_u8(opcode) {
-            match op {
-                OpCode::End => return Ok(None),
+            use num::FromPrimitive;
+            action = if let Some(op) = OpCode::from_u8(opcode) {
+                match op {
+                    OpCode::End => return Ok(None),
 
-                OpCode::Add => Action::Add,
-                OpCode::Add2 => Action::Add2,
-                OpCode::And => Action::And,
-                OpCode::AsciiToChar => Action::AsciiToChar,
-                OpCode::BitAnd => Action::BitAnd,
-                OpCode::BitLShift => Action::BitLShift,
-                OpCode::BitOr => Action::BitOr,
-                OpCode::BitRShift => Action::BitRShift,
-                OpCode::BitURShift => Action::BitURShift,
-                OpCode::BitXor => Action::BitXor,
-                OpCode::Call => Action::Call,
-                OpCode::CallFunction => Action::CallFunction,
-                OpCode::CallMethod => Action::CallMethod,
-                OpCode::CastOp => Action::CastOp,
-                OpCode::CharToAscii => Action::CharToAscii,
-                OpCode::CloneSprite => Action::CloneSprite,
-                OpCode::ConstantPool => {
-                    let mut constants = vec![];
-                    for _ in 0..action_reader.read_u16()? {
-                        constants.push(action_reader.read_c_string()?);
+                    OpCode::Add => Action::Add,
+                    OpCode::Add2 => Action::Add2,
+                    OpCode::And => Action::And,
+                    OpCode::AsciiToChar => Action::AsciiToChar,
+                    OpCode::BitAnd => Action::BitAnd,
+                    OpCode::BitLShift => Action::BitLShift,
+                    OpCode::BitOr => Action::BitOr,
+                    OpCode::BitRShift => Action::BitRShift,
+                    OpCode::BitURShift => Action::BitURShift,
+                    OpCode::BitXor => Action::BitXor,
+                    OpCode::Call => Action::Call,
+                    OpCode::CallFunction => Action::CallFunction,
+                    OpCode::CallMethod => Action::CallMethod,
+                    OpCode::CastOp => Action::CastOp,
+                    OpCode::CharToAscii => Action::CharToAscii,
+                    OpCode::CloneSprite => Action::CloneSprite,
+                    OpCode::ConstantPool => {
+                        let mut constants = vec![];
+                        for _ in 0..action_reader.read_u16()? {
+                            constants.push(action_reader.read_c_string()?);
+                        }
+                        Action::ConstantPool(constants)
                     }
-                    Action::ConstantPool(constants)
-                }
-                OpCode::Decrement => Action::Decrement,
-                OpCode::DefineFunction => action_reader.read_define_function()?,
-                OpCode::DefineFunction2 => action_reader.read_define_function_2()?,
-                OpCode::DefineLocal => Action::DefineLocal,
-                OpCode::DefineLocal2 => Action::DefineLocal2,
-                OpCode::Delete => Action::Delete,
-                OpCode::Delete2 => Action::Delete2,
-                OpCode::Divide => Action::Divide,
-                OpCode::EndDrag => Action::EndDrag,
-                OpCode::Enumerate => Action::Enumerate,
-                OpCode::Enumerate2 => Action::Enumerate2,
-                OpCode::Equals => Action::Equals,
-                OpCode::Equals2 => Action::Equals2,
-                OpCode::Extends => Action::Extends,
-                OpCode::GetMember => Action::GetMember,
-                OpCode::GetProperty => Action::GetProperty,
-                OpCode::GetTime => Action::GetTime,
-                OpCode::GetUrl => Action::GetUrl {
-                    url: try!(action_reader.read_c_string()),
-                    target: try!(action_reader.read_c_string()),
-                },
-                OpCode::GetUrl2 => {
-                    let flags = try!(action_reader.read_u8());
-                    Action::GetUrl2 {
-                        is_target_sprite: flags & 0b10 != 0,
-                        is_load_vars: flags & 0b1 != 0,
-                        send_vars_method: match flags >> 6 {
-                            0 => SendVarsMethod::None,
-                            1 => SendVarsMethod::Get,
-                            2 => SendVarsMethod::Post,
-                            _ => {
-                                return Err(Error::new(
-                                    ErrorKind::InvalidData,
-                                    "Invalid HTTP method in ActionGetUrl2",
-                                ))
-                            }
-                        },
+                    OpCode::Decrement => Action::Decrement,
+                    OpCode::DefineFunction => {
+                        let action = action_reader.read_define_function()?;
+                        code_length = action_reader.read_u16()?;
+                        action
+                    },
+                    OpCode::DefineFunction2 => {
+                        let action = action_reader.read_define_function_2()?;
+                        code_length = action_reader.read_u16()?;
+                        action
+                    },
+                    OpCode::DefineLocal => Action::DefineLocal,
+                    OpCode::DefineLocal2 => Action::DefineLocal2,
+                    OpCode::Delete => Action::Delete,
+                    OpCode::Delete2 => Action::Delete2,
+                    OpCode::Divide => Action::Divide,
+                    OpCode::EndDrag => Action::EndDrag,
+                    OpCode::Enumerate => Action::Enumerate,
+                    OpCode::Enumerate2 => Action::Enumerate2,
+                    OpCode::Equals => Action::Equals,
+                    OpCode::Equals2 => Action::Equals2,
+                    OpCode::Extends => Action::Extends,
+                    OpCode::GetMember => Action::GetMember,
+                    OpCode::GetProperty => Action::GetProperty,
+                    OpCode::GetTime => Action::GetTime,
+                    OpCode::GetUrl => Action::GetUrl {
+                        url: try!(action_reader.read_c_string()),
+                        target: try!(action_reader.read_c_string()),
+                    },
+                    OpCode::GetUrl2 => {
+                        let flags = try!(action_reader.read_u8());
+                        Action::GetUrl2 {
+                            is_target_sprite: flags & 0b10 != 0,
+                            is_load_vars: flags & 0b1 != 0,
+                            send_vars_method: match flags >> 6 {
+                                0 => SendVarsMethod::None,
+                                1 => SendVarsMethod::Get,
+                                2 => SendVarsMethod::Post,
+                                _ => {
+                                    return Err(Error::new(
+                                        ErrorKind::InvalidData,
+                                        "Invalid HTTP method in ActionGetUrl2",
+                                    ))
+                                }
+                            },
+                        }
                     }
-                }
-                OpCode::GetVariable => Action::GetVariable,
-                OpCode::GotoFrame => {
-                    let frame = try!(action_reader.read_u16());
-                    Action::GotoFrame(frame)
-                }
-                OpCode::GotoFrame2 => {
-                    let flags = try!(action_reader.read_u8());
-                    Action::GotoFrame2 {
-                        set_playing: flags & 0b1 != 0,
-                        scene_offset: if flags & 0b10 != 0 {
-                            try!(action_reader.read_u16())
-                        } else {
-                            0
-                        },
+                    OpCode::GetVariable => Action::GetVariable,
+                    OpCode::GotoFrame => {
+                        let frame = try!(action_reader.read_u16());
+                        Action::GotoFrame(frame)
                     }
-                }
-                OpCode::GotoLabel => Action::GotoLabel(try!(action_reader.read_c_string())),
-                OpCode::Greater => Action::Greater,
-                OpCode::If => Action::If { offset: try!(action_reader.read_i16()) },
-                OpCode::ImplementsOp => Action::ImplementsOp,
-                OpCode::Increment => Action::Increment,
-                OpCode::InitArray => Action::InitArray,
-                OpCode::InitObject => Action::InitObject,
-                OpCode::InstanceOf => Action::InstanceOf,
-                OpCode::Jump => Action::Jump { offset: try!(action_reader.read_i16()) },
-                OpCode::Less => Action::Less,
-                OpCode::Less2 => Action::Less2,
-                OpCode::MBAsciiToChar => Action::MBAsciiToChar,
-                OpCode::MBCharToAscii => Action::MBCharToAscii,
-                OpCode::MBStringExtract => Action::MBStringExtract,
-                OpCode::MBStringLength => Action::MBStringLength,
-                OpCode::Modulo => Action::Modulo,
-                OpCode::Multiply => Action::Multiply,
-                OpCode::NewMethod => Action::NewMethod,
-                OpCode::NewObject => Action::NewObject,
-                OpCode::NextFrame => Action::NextFrame,
-                OpCode::Not => Action::Not,
-                OpCode::Or => Action::Or,
-                OpCode::Play => Action::Play,
-                OpCode::Pop => Action::Pop,
-                OpCode::PreviousFrame => Action::PreviousFrame,
-                // TODO: Verify correct version for complex types.
-                OpCode::Push => {
-                    let mut values = vec![];
-                    while let Ok(value) = action_reader.read_push_value() {
-                        values.push(value);
+                    OpCode::GotoFrame2 => {
+                        let flags = try!(action_reader.read_u8());
+                        Action::GotoFrame2 {
+                            set_playing: flags & 0b1 != 0,
+                            scene_offset: if flags & 0b10 != 0 {
+                                try!(action_reader.read_u16())
+                            } else {
+                                0
+                            },
+                        }
                     }
-                    Action::Push(values)
+                    OpCode::GotoLabel => Action::GotoLabel(try!(action_reader.read_c_string())),
+                    OpCode::Greater => Action::Greater,
+                    OpCode::If => Action::If { offset: try!(action_reader.read_i16()) },
+                    OpCode::ImplementsOp => Action::ImplementsOp,
+                    OpCode::Increment => Action::Increment,
+                    OpCode::InitArray => Action::InitArray,
+                    OpCode::InitObject => Action::InitObject,
+                    OpCode::InstanceOf => Action::InstanceOf,
+                    OpCode::Jump => Action::Jump { offset: try!(action_reader.read_i16()) },
+                    OpCode::Less => Action::Less,
+                    OpCode::Less2 => Action::Less2,
+                    OpCode::MBAsciiToChar => Action::MBAsciiToChar,
+                    OpCode::MBCharToAscii => Action::MBCharToAscii,
+                    OpCode::MBStringExtract => Action::MBStringExtract,
+                    OpCode::MBStringLength => Action::MBStringLength,
+                    OpCode::Modulo => Action::Modulo,
+                    OpCode::Multiply => Action::Multiply,
+                    OpCode::NewMethod => Action::NewMethod,
+                    OpCode::NewObject => Action::NewObject,
+                    OpCode::NextFrame => Action::NextFrame,
+                    OpCode::Not => Action::Not,
+                    OpCode::Or => Action::Or,
+                    OpCode::Play => Action::Play,
+                    OpCode::Pop => Action::Pop,
+                    OpCode::PreviousFrame => Action::PreviousFrame,
+                    // TODO: Verify correct version for complex types.
+                    OpCode::Push => {
+                        let mut values = vec![];
+                        while let Ok(value) = action_reader.read_push_value() {
+                            values.push(value);
+                        }
+                        Action::Push(values)
+                    }
+                    OpCode::PushDuplicate => Action::PushDuplicate,
+                    OpCode::RandomNumber => Action::RandomNumber,
+                    OpCode::RemoveSprite => Action::RemoveSprite,
+                    OpCode::Return => Action::Return,
+                    OpCode::SetMember => Action::SetMember,
+                    OpCode::SetProperty => Action::SetProperty,
+                    OpCode::SetTarget => Action::SetTarget(action_reader.read_c_string()?),
+                    OpCode::SetTarget2 => Action::SetTarget2,
+                    OpCode::SetVariable => Action::SetVariable,
+                    OpCode::StackSwap => Action::StackSwap,
+                    OpCode::StartDrag => Action::StartDrag,
+                    OpCode::Stop => Action::Stop,
+                    OpCode::StopSounds => Action::StopSounds,
+                    OpCode::StoreRegister => Action::StoreRegister(action_reader.read_u8()?),
+                    OpCode::StrictEquals => Action::StrictEquals,
+                    OpCode::StringAdd => Action::StringAdd,
+                    OpCode::StringEquals => Action::StringEquals,
+                    OpCode::StringExtract => Action::StringExtract,
+                    OpCode::StringGreater => Action::StringGreater,
+                    OpCode::StringLength => Action::StringLength,
+                    OpCode::StringLess => Action::StringLess,
+                    OpCode::Subtract => Action::Subtract,
+                    OpCode::TargetPath => Action::TargetPath,
+                    OpCode::Throw => Action::Throw,
+                    OpCode::ToggleQuality => Action::ToggleQuality,
+                    OpCode::ToInteger => Action::ToInteger,
+                    OpCode::ToNumber => Action::ToNumber,
+                    OpCode::ToString => Action::ToString,
+                    OpCode::Trace => Action::Trace,
+                    OpCode::Try => action_reader.read_try()?,
+                    OpCode::TypeOf => Action::TypeOf,
+                    OpCode::WaitForFrame => Action::WaitForFrame {
+                        frame: try!(action_reader.read_u16()),
+                        num_actions_to_skip: try!(action_reader.read_u8()),
+                    },
+                    OpCode::With => {
+                        let code_length = action_reader.read_u16()?;
+                        let mut with_reader = Reader::new(
+                            (&mut action_reader.inner as &mut Read).take(code_length as u64),
+                            self.version,
+                        );
+                        Action::With { actions: with_reader.read_action_list()? }
+                    }
+                    OpCode::WaitForFrame2 => Action::WaitForFrame2 {
+                        num_actions_to_skip: try!(action_reader.read_u8()),
+                    },
                 }
-                OpCode::PushDuplicate => Action::PushDuplicate,
-                OpCode::RandomNumber => Action::RandomNumber,
-                OpCode::RemoveSprite => Action::RemoveSprite,
-                OpCode::Return => Action::Return,
-                OpCode::SetMember => Action::SetMember,
-                OpCode::SetProperty => Action::SetProperty,
-                OpCode::SetTarget => Action::SetTarget(action_reader.read_c_string()?),
-                OpCode::SetTarget2 => Action::SetTarget2,
-                OpCode::SetVariable => Action::SetVariable,
-                OpCode::StackSwap => Action::StackSwap,
-                OpCode::StartDrag => Action::StartDrag,
-                OpCode::Stop => Action::Stop,
-                OpCode::StopSounds => Action::StopSounds,
-                OpCode::StoreRegister => Action::StoreRegister(action_reader.read_u8()?),
-                OpCode::StrictEquals => Action::StrictEquals,
-                OpCode::StringAdd => Action::StringAdd,
-                OpCode::StringEquals => Action::StringEquals,
-                OpCode::StringExtract => Action::StringExtract,
-                OpCode::StringGreater => Action::StringGreater,
-                OpCode::StringLength => Action::StringLength,
-                OpCode::StringLess => Action::StringLess,
-                OpCode::Subtract => Action::Subtract,
-                OpCode::TargetPath => Action::TargetPath,
-                OpCode::Throw => Action::Throw,
-                OpCode::ToggleQuality => Action::ToggleQuality,
-                OpCode::ToInteger => Action::ToInteger,
-                OpCode::ToNumber => Action::ToNumber,
-                OpCode::ToString => Action::ToString,
-                OpCode::Trace => Action::Trace,
-                OpCode::Try => action_reader.read_try()?,
-                OpCode::TypeOf => Action::TypeOf,
-                OpCode::WaitForFrame => Action::WaitForFrame {
-                    frame: try!(action_reader.read_u16()),
-                    num_actions_to_skip: try!(action_reader.read_u8()),
-                },
-                OpCode::With => {
-                    let code_length = action_reader.read_u16()?;
-                    let mut with_reader = Reader::new(
-                        (&mut action_reader.inner as &mut Read).take(code_length as u64),
-                        self.version,
-                    );
-                    Action::With { actions: with_reader.read_action_list()? }
+            } else {
+                action_reader.read_unknown_action(opcode, length)?
+            };
+        };
+        
+        
+        action = match action {
+            Action::DefineFunction {name, params, actions: _} => {
+                let mut fn_reader = Reader::new(
+                    (&mut self.inner as &mut Read).take(code_length as u64),
+                    self.version,
+                );
+                let mut actions = Vec::new();
+                while let Ok(Some(action)) = fn_reader.read_action() { // no try!
+                    actions.push(action);
                 }
-                OpCode::WaitForFrame2 => Action::WaitForFrame2 {
-                    num_actions_to_skip: try!(action_reader.read_u8()),
-                },
+                                
+                Action::DefineFunction {
+                    name: name,
+                    params: params,
+                    actions: actions,
+                }
+            },
+            Action::DefineFunction2(mut function) => {
+                let mut fn_reader = Reader::new(
+                    (&mut self.inner as &mut Read).take(code_length as u64),
+                    self.version,
+                );
+                let mut actions = Vec::new();
+                while let Ok(Some(action)) = fn_reader.read_action() { // no try!
+                    actions.push(action);
+                }
+                function.actions = actions;
+                Action::DefineFunction2(function)
+            },
+            _ => {
+                action
             }
-        } else {
-            action_reader.read_unknown_action(opcode, length)?
         };
 
         Ok(Some(action))
@@ -257,15 +304,10 @@ impl<R: Read> Reader<R> {
         for _ in 0..num_params {
             params.push(self.read_c_string()?);
         }
-        let code_length = self.read_u16()?;
-        let mut fn_reader = Reader::new(
-            (&mut self.inner as &mut Read).take(code_length as u64),
-            self.version,
-        );
         Ok(Action::DefineFunction {
             name: name,
             params: params,
-            actions: fn_reader.read_action_list()?,
+            actions: Vec::new(),
         })
     }
 
@@ -282,11 +324,6 @@ impl<R: Read> Reader<R> {
                 register_index: if register == 0 { None } else { Some(register) },
             });
         }
-        let code_length = self.read_u16()?;
-        let mut fn_reader = Reader::new(
-            (&mut self.inner as &mut Read).take(code_length as u64),
-            self.version,
-        );
         Ok(Action::DefineFunction2(Function {
             name: name,
             params: params,
@@ -299,7 +336,7 @@ impl<R: Read> Reader<R> {
             preload_arguments: flags & 0b100 != 0,
             suppress_this: flags & 0b10 != 0,
             preload_this: flags & 0b1 != 0,
-            actions: fn_reader.read_action_list()?,
+            actions:  Vec::new(),
         }))
     }
 
