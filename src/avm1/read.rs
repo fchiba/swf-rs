@@ -36,6 +36,7 @@ impl<R: Read> Reader<R> {
 
     pub fn read_action(&mut self) -> Result<Option<Action>> {
         let (opcode, length) = try!(self.read_opcode_and_length());
+        println!("opcode {} length {}", opcode, length);
 
         let mut action;
         let mut code_length = 0; // for DefineFunction / DefineFunction2

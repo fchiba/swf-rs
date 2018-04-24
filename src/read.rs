@@ -413,6 +413,7 @@ impl<R: Read> Reader<R> {
                     // We screwed up reading this tag in some way.
                     // TODO: We could recover more gracefully in some way.
                     // Simply throw away this tag, but keep going.
+                    println!("{}", err);
                     if cfg!(debug_assertions) {
                         panic!("Error reading tag");
                     }
@@ -426,6 +427,7 @@ impl<R: Read> Reader<R> {
 
     fn read_tag(&mut self) -> Result<Option<Tag>> {
         let (tag_code, length) = self.read_tag_code_and_length()?;
+        println!("{} {}", tag_code, length);
 
         let mut tag_reader = Reader::new(self.input.by_ref().take(length as u64), self.version);
         use tag_codes::TagCode;
@@ -702,8 +704,8 @@ impl<R: Read> Reader<R> {
             }
 
             Some(TagCode::Protect) => {
-                // tag_reader.read_u16()?; // Two null bytes? Not specified in SWF19.
                 Tag::Protect(if length > 0 {
+                    tag_reader.read_u16()?; // Two null bytes? Not specified in SWF19.
                     Some(tag_reader.read_c_string()?)
                 } else {
                     None
@@ -1016,9 +1018,11 @@ impl<R: Read> Reader<R> {
     }
 
     fn read_define_font_2(&mut self, version: u8) -> Result<Tag> {
+        println!("read_define_font_2");
         let id = self.read_character_id()?;
 
         let flags = self.read_u8()?;
+        println!("id {} flags {}", id, flags);
         let has_layout = flags & 0b10000000 != 0;
         let is_shift_jis = flags & 0b1000000 != 0;
         let is_small_text = flags & 0b100000 != 0;
@@ -1035,9 +1039,11 @@ impl<R: Read> Reader<R> {
             .by_ref()
             .take(name_len as u64)
             .read_to_string(&mut name)?;
+        println!("language {:?} name {} {}", language, name, name_len);
 
         let num_glyphs = self.read_u16()? as usize;
         let mut glyphs = Vec::with_capacity(num_glyphs);
+        println!("num glyphs {}", num_glyphs);
         glyphs.resize(
             num_glyphs,
             Glyph {
@@ -1047,6 +1053,7 @@ impl<R: Read> Reader<R> {
                 bounds: None,
             },
         );
+        println!("a");
 
         // OffsetTable
         // We are throwing these away.
@@ -1057,6 +1064,7 @@ impl<R: Read> Reader<R> {
                 self.read_u16()? as u32
             };
         }
+        println!("b {}", has_wide_offsets);
 
         // CodeTableOffset
         if num_glyphs != 0 {
@@ -1072,6 +1080,7 @@ impl<R: Read> Reader<R> {
                 self.read_u16();
             }
         }
+        println!("c");
 
         // ShapeTable
         for glyph in &mut glyphs {
@@ -1082,6 +1091,7 @@ impl<R: Read> Reader<R> {
             }
             self.byte_align();
         }
+        println!("d");
 
         // CodeTable
         for glyph in &mut glyphs {
@@ -1091,6 +1101,7 @@ impl<R: Read> Reader<R> {
                 self.read_u8()? as u16
             };
         }
+        println!("e");
 
         let layout = if has_layout {
             let ascent = self.read_u16()?;
@@ -1120,6 +1131,7 @@ impl<R: Read> Reader<R> {
         } else {
             None
         };
+        println!("f");
 
         Ok(Tag::DefineFont2(Box::new(Font {
             version: version,
@@ -1908,9 +1920,11 @@ impl<R: Read> Reader<R> {
         } else {
             self.read_u8()? as u16
         };
+        println!("flags {}", flags);
 
         let depth = self.read_i16()?;
 
+        println!("depth {}", depth);
         // PlaceObject3
         let is_image = (flags & 0b10000_00000000) != 0;
         let has_class_name = (flags & 0b1000_00000000) != 0 || (is_image && (flags & 0b10) != 0);
@@ -1919,6 +1933,7 @@ impl<R: Read> Reader<R> {
         } else {
             None
         };
+        println!("class_name {:?}", class_name);
 
         let action = match flags & 0b11 {
             0b01 => PlaceObjectAction::Modify,
@@ -1946,11 +1961,13 @@ impl<R: Read> Reader<R> {
         } else {
             None
         };
+        println!("ratio {:?}", ratio);
         let name = if (flags & 0b10_0000) != 0 {
             Some(self.read_c_string()?)
         } else {
             None
         };
+        println!("name {:?}", name);
         let clip_depth = if (flags & 0b100_0000) != 0 {
             Some(self.read_i16()?)
         } else {
@@ -2935,7 +2952,7 @@ pub mod tests {
         }
         {
             let buf = "12🤖12\0".as_bytes();
-            let mut reader = Reader::new(&buf[..], 1);
+            let mut reader = Reader::new(&buf[..], 10);
             assert_eq!(reader.read_c_string().unwrap(), "12🤖12");
         }
     }
@@ -3054,6 +3071,7 @@ pub mod tests {
     #[test]
     fn read_tags() {
         for (swf_version, expected_tag, tag_bytes) in test_data::tag_tests() {
+            println!("{:?}", expected_tag);
             let mut reader = Reader::new(&tag_bytes[..], swf_version);
             let parsed_tag = reader.read_tag().unwrap().unwrap();
             if parsed_tag != expected_tag {

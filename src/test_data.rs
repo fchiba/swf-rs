@@ -2184,7 +2184,7 @@ pub fn tag_tests() -> Vec<TagTestData> {
             ),
         ),
         (
-            1, // Minimum version not listed in SWF19.
+            10, // Minimum version not listed in SWF19.
             Tag::DefineSceneAndFrameLabelData {
                 scenes: vec![
                     FrameLabel {
