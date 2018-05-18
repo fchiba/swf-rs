@@ -21,7 +21,7 @@ pub enum Action {
     DefineFunction {
         name: String,
         params: Vec<String>,
-        actions: Vec<Action>,
+        actions: ActionList,
     },
     DefineFunction2(Function),
     DefineLocal,
@@ -109,9 +109,17 @@ pub enum Action {
     TypeOf,
     WaitForFrame { frame: u16, num_actions_to_skip: u8 },
     WaitForFrame2 { num_actions_to_skip: u8 },
-    With { actions: Vec<Action> },
+    With { actions: ActionList },
     Unknown { opcode: u8, data: Vec<u8> },
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ActionWithSize {
+    pub action: Action,
+    pub size: u64,
+}
+
+pub type ActionList = Vec<ActionWithSize>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -146,7 +154,7 @@ pub struct Function {
     pub suppress_this: bool,
     pub preload_this: bool,
     pub preload_global: bool,
-    pub actions: Vec<Action>,
+    pub actions: ActionList,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -157,9 +165,9 @@ pub struct FunctionParam {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TryBlock {
-    pub try: Vec<Action>,
-    pub catch: Option<(CatchVar, Vec<Action>)>,
-    pub finally: Option<Vec<Action>>,
+    pub try: ActionList,
+    pub catch: Option<(CatchVar, ActionList)>,
+    pub finally: Option<ActionList>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

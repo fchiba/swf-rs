@@ -26,7 +26,7 @@ impl<R: Read> Reader<R> {
         }
     }
 
-    pub fn read_action_list(&mut self) -> Result<Vec<Action>> {
+    pub fn read_action_list(&mut self) -> Result<ActionList> {
         let mut actions = Vec::new();
         while let Some(action) = try!(self.read_action()) {
             actions.push(action);
@@ -34,7 +34,7 @@ impl<R: Read> Reader<R> {
         Ok(actions)
     }
 
-    pub fn read_action(&mut self) -> Result<Option<Action>> {
+    pub fn read_action(&mut self) -> Result<Option<ActionWithSize>> {
         let (opcode, length) = try!(self.read_opcode_and_length());
         println!("opcode {} length {}", opcode, length);
 
@@ -254,7 +254,7 @@ impl<R: Read> Reader<R> {
             }
         };
 
-        Ok(Some(action))
+        Ok(Some(ActionWithSize{action:action,size:length as u64 + 1}))
     }
 
     pub fn read_opcode_and_length(&mut self) -> Result<(u8, usize)> {
@@ -398,7 +398,7 @@ pub mod tests {
         for (swf_version, expected_action, action_bytes) in test_data::avm1_tests() {
             let mut reader = Reader::new(&action_bytes[..], swf_version);
             let parsed_action = reader.read_action().unwrap().unwrap();
-            if parsed_action != expected_action {
+            if parsed_action.action != expected_action {
                 // Failed, result doesn't match.
                 panic!(
                     "Incorrectly parsed action.\nRead:\n{:?}\n\nExpected:\n{:?}",

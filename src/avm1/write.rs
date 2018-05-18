@@ -22,9 +22,9 @@ impl<W: Write> Writer<W> {
         }
     }
 
-    pub fn write_action_list(&mut self, actions: &[Action]) -> Result<()> {
+    pub fn write_action_list(&mut self, actions: &ActionList) -> Result<()> {
         for action in actions {
-            try!(self.write_action(action));
+            try!(self.write_action(&action.action));
         }
         try!(self.write_u8(0)); // End
         Ok(())
