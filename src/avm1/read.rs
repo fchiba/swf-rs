@@ -254,7 +254,8 @@ impl<R: Read> Reader<R> {
             }
         };
 
-        Ok(Some(ActionWithSize{action:action,size:length as u64 + 1}))
+        let size = if length == 0 { 1 } else { 1 + 2 + length };
+        Ok(Some(ActionWithSize{action:action, size:size as u64}))
     }
 
     pub fn read_opcode_and_length(&mut self) -> Result<(u8, usize)> {
