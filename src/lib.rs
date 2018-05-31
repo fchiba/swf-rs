@@ -16,6 +16,8 @@ extern crate flate2;
 extern crate num;
 extern crate xz2;
 extern crate encoding_rs;
+#[macro_use]
+extern crate log;
 
 pub mod avm1;
 pub mod avm2;
