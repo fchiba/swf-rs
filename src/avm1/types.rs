@@ -145,6 +145,7 @@ pub enum SendVarsMethod {
 pub struct Function {
     pub name: String,
     pub params: Vec<FunctionParam>,
+    pub num_registers: u8,
     pub preload_parent: bool,
     pub preload_root: bool,
     pub suppress_super: bool,
