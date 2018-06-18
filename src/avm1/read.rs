@@ -1,5 +1,5 @@
-use avm1::types::*;
 use avm1::opcode::OpCode;
+use avm1::types::*;
 use read::SwfRead;
 use std::io::{Error, ErrorKind, Read, Result};
 
@@ -12,7 +12,7 @@ impl<R: Read> SwfRead<R> for Reader<R> {
     fn get_version(&self) -> u8 {
         self.version
     }
-    
+
     fn get_inner(&mut self) -> &mut R {
         &mut self.inner
     }
@@ -41,7 +41,8 @@ impl<R: Read> Reader<R> {
         let mut action;
         let mut code_length = 0; // for DefineFunction / DefineFunction2
         {
-            let mut action_reader = Reader::new(self.inner.by_ref().take(length as u64), self.version);
+            let mut action_reader =
+                Reader::new(self.inner.by_ref().take(length as u64), self.version);
 
             use num::FromPrimitive;
             action = if let Some(op) = OpCode::from_u8(opcode) {
@@ -76,12 +77,12 @@ impl<R: Read> Reader<R> {
                         let action = action_reader.read_define_function()?;
                         code_length = action_reader.read_u16()?;
                         action
-                    },
+                    }
                     OpCode::DefineFunction2 => {
                         let action = action_reader.read_define_function_2()?;
                         code_length = action_reader.read_u16()?;
                         action
-                    },
+                    }
                     OpCode::DefineLocal => Action::DefineLocal,
                     OpCode::DefineLocal2 => Action::DefineLocal2,
                     OpCode::Delete => Action::Delete,
@@ -136,13 +137,17 @@ impl<R: Read> Reader<R> {
                     }
                     OpCode::GotoLabel => Action::GotoLabel(try!(action_reader.read_c_string())),
                     OpCode::Greater => Action::Greater,
-                    OpCode::If => Action::If { offset: try!(action_reader.read_i16()) },
+                    OpCode::If => Action::If {
+                        offset: try!(action_reader.read_i16()),
+                    },
                     OpCode::ImplementsOp => Action::ImplementsOp,
                     OpCode::Increment => Action::Increment,
                     OpCode::InitArray => Action::InitArray,
                     OpCode::InitObject => Action::InitObject,
                     OpCode::InstanceOf => Action::InstanceOf,
-                    OpCode::Jump => Action::Jump { offset: try!(action_reader.read_i16()) },
+                    OpCode::Jump => Action::Jump {
+                        offset: try!(action_reader.read_i16()),
+                    },
                     OpCode::Less => Action::Less,
                     OpCode::Less2 => Action::Less2,
                     OpCode::MBAsciiToChar => Action::MBAsciiToChar,
@@ -208,7 +213,9 @@ impl<R: Read> Reader<R> {
                             (&mut action_reader.inner as &mut Read).take(code_length as u64),
                             self.version,
                         );
-                        Action::With { actions: with_reader.read_action_list()? }
+                        Action::With {
+                            actions: with_reader.read_action_list()?,
+                        }
                     }
                     OpCode::WaitForFrame2 => Action::WaitForFrame2 {
                         num_actions_to_skip: try!(action_reader.read_u8()),
@@ -218,44 +225,50 @@ impl<R: Read> Reader<R> {
                 action_reader.read_unknown_action(opcode, length)?
             };
         };
-        
-        
+
         action = match action {
-            Action::DefineFunction {name, params, actions: _} => {
+            Action::DefineFunction {
+                name,
+                params,
+                actions: _,
+            } => {
                 let mut fn_reader = Reader::new(
                     (&mut self.inner as &mut Read).take(code_length as u64),
                     self.version,
                 );
                 let mut actions = Vec::new();
-                while let Ok(Some(action)) = fn_reader.read_action() { // no try!
+                while let Ok(Some(action)) = fn_reader.read_action() {
+                    // no try!
                     actions.push(action);
                 }
-                                
+
                 Action::DefineFunction {
                     name: name,
                     params: params,
                     actions: actions,
                 }
-            },
+            }
             Action::DefineFunction2(mut function) => {
                 let mut fn_reader = Reader::new(
                     (&mut self.inner as &mut Read).take(code_length as u64),
                     self.version,
                 );
                 let mut actions = Vec::new();
-                while let Ok(Some(action)) = fn_reader.read_action() { // no try!
+                while let Ok(Some(action)) = fn_reader.read_action() {
+                    // no try!
                     actions.push(action);
                 }
                 function.actions = actions;
                 Action::DefineFunction2(function)
-            },
-            _ => {
-                action
             }
+            _ => action,
         };
 
         let size = if length == 0 { 1 } else { 1 + 2 + length };
-        Ok(Some(ActionWithSize{action:action, size:size as u64}))
+        Ok(Some(ActionWithSize {
+            action: action,
+            size: size as u64,
+        }))
     }
 
     pub fn read_opcode_and_length(&mut self) -> Result<(u8, usize)> {
@@ -339,7 +352,7 @@ impl<R: Read> Reader<R> {
             preload_arguments: flags & 0b100 != 0,
             suppress_this: flags & 0b10 != 0,
             preload_this: flags & 0b1 != 0,
-            actions:  Vec::new(),
+            actions: Vec::new(),
         }))
     }
 
@@ -404,8 +417,7 @@ pub mod tests {
                 // Failed, result doesn't match.
                 panic!(
                     "Incorrectly parsed action.\nRead:\n{:?}\n\nExpected:\n{:?}",
-                    parsed_action,
-                    expected_action
+                    parsed_action, expected_action
                 );
             }
         }

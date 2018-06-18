@@ -10,7 +10,7 @@ impl<R: Read> SwfRead<R> for Reader<R> {
     fn get_version(&self) -> u8 {
         10
     }
-    
+
     fn get_inner(&mut self) -> &mut R {
         &mut self.inner
     }
@@ -94,10 +94,9 @@ impl<R: Read> Reader<R> {
     }
 
     fn read_i24(&mut self) -> Result<i32> {
-        Ok(
-            (self.read_u8()? as i32) | ((self.read_u8()? as i32) << 8) |
-                ((self.read_u8()? as i32) << 16),
-        )
+        Ok((self.read_u8()? as i32)
+            | ((self.read_u8()? as i32) << 8)
+            | ((self.read_u8()? as i32) << 16))
     }
     fn read_i32(&mut self) -> Result<i32> {
         let mut n: i32 = 0;
@@ -855,8 +854,8 @@ pub mod tests {
     use test_data;
 
     pub fn read_abc_from_file(path: &str) -> Vec<u8> {
-        use types::Tag;
         use std::fs::File;
+        use types::Tag;
 
         let mut file = File::open(path).unwrap();
         let mut data = Vec::new();
@@ -880,8 +879,7 @@ pub mod tests {
                 // Failed, result doesn't match.
                 panic!(
                     "Incorrectly parsed ABC.\nRead:\n{:?}\n\nExpected:\n{:?}",
-                    parsed,
-                    abc_file
+                    parsed, abc_file
                 );
             }
         }

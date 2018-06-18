@@ -1,7 +1,7 @@
-use avm1::types::*;
 use avm1::opcode::OpCode;
-use write::SwfWrite;
+use avm1::types::*;
 use std::io::{Result, Write};
+use write::SwfWrite;
 
 pub struct Writer<W: Write> {
     inner: W,
@@ -68,8 +68,12 @@ impl<W: Write> Writer<W> {
                     let mut fn_writer = Writer::new(&mut action_buf, self.version);
                     fn_writer.write_action_list(actions)?;
                 }
-                let len = name.len() + 1 + 2 + params.iter().map(|p| p.len() + 1).sum::<usize>() +
-                    2 + action_buf.len();
+                let len = name.len()
+                    + 1
+                    + 2
+                    + params.iter().map(|p| p.len() + 1).sum::<usize>()
+                    + 2
+                    + action_buf.len();
                 self.write_action_header(OpCode::DefineFunction, len)?;
                 self.write_c_string(name)?;
                 self.write_u16(params.len() as u16)?;
@@ -85,8 +89,8 @@ impl<W: Write> Writer<W> {
                     let mut fn_writer = Writer::new(&mut action_buf, self.version);
                     fn_writer.write_action_list(&function.actions)?;
                 }
-                let len = function.name.len() + 1 + 3 +
-                    function
+                let len = function.name.len() + 1 + 3
+                    + function
                         .params
                         .iter()
                         .map(|p| p.name.len() + 2)
@@ -105,21 +109,20 @@ impl<W: Write> Writer<W> {
                         0b1_00000000
                     } else {
                         0
-                    } |
-                        if function.preload_parent {
-                            0b10000000
-                        } else {
-                            0
-                        } | if function.preload_root { 0b1000000 } else { 0 } |
-                        if function.suppress_super { 0b100000 } else { 0 } |
-                        if function.preload_super { 0b10000 } else { 0 } |
-                        if function.suppress_arguments {
+                    } | if function.preload_parent {
+                        0b10000000
+                    } else {
+                        0
+                    } | if function.preload_root { 0b1000000 } else { 0 }
+                        | if function.suppress_super { 0b100000 } else { 0 }
+                        | if function.preload_super { 0b10000 } else { 0 }
+                        | if function.suppress_arguments {
                             0b1000
                         } else {
                             0
-                        } | if function.preload_arguments { 0b100 } else { 0 } |
-                        if function.suppress_this { 0b10 } else { 0 } |
-                        if function.preload_this { 0b1 } else { 0 };
+                        } | if function.preload_arguments { 0b100 } else { 0 }
+                        | if function.suppress_this { 0b10 } else { 0 }
+                        | if function.preload_this { 0b1 } else { 0 };
                 self.write_u16(flags)?;
                 for param in &function.params {
                     self.write_u8(if let Some(n) = param.register_index {
@@ -161,12 +164,11 @@ impl<W: Write> Writer<W> {
             } => {
                 self.write_action_header(OpCode::GetUrl2, 1)?;
                 let flags = (match send_vars_method {
-                                 SendVarsMethod::None => 0,
-                                 SendVarsMethod::Get => 1,
-                                 SendVarsMethod::Post => 2,
-                             } << 6) |
-                    if is_target_sprite { 0b10 } else { 0 } |
-                    if is_load_vars { 0b1 } else { 0 };
+                    SendVarsMethod::None => 0,
+                    SendVarsMethod::Get => 1,
+                    SendVarsMethod::Post => 2,
+                } << 6) | if is_target_sprite { 0b10 } else { 0 }
+                    | if is_load_vars { 0b1 } else { 0 };
                 self.write_u8(flags)?;
             }
             Action::GetVariable => self.write_action_header(OpCode::GetVariable, 0)?,
@@ -227,8 +229,7 @@ impl<W: Write> Writer<W> {
                     .map(|v| match *v {
                         Value::Str(ref string) => string.len() + 2,
                         Value::Null | Value::Undefined => 1,
-                        Value::Register(_) |
-                        Value::Bool(_) => 2,
+                        Value::Register(_) | Value::Bool(_) => 2,
                         Value::Double(_) => 9,
                         Value::Float(_) | Value::Int(_) => 5,
                         Value::ConstantPool(v) => {
@@ -298,8 +299,8 @@ impl<W: Write> Writer<W> {
                     }
                     finally_length = fn_writer.inner.len() - (try_length + catch_length);
                 }
-                let len = 7 + action_buf.len() +
-                    if let Some((CatchVar::Var(ref name), _)) = try_block.catch {
+                let len = 7 + action_buf.len()
+                    + if let Some((CatchVar::Var(ref name), _)) = try_block.catch {
                         name.len() + 1
                     } else {
                         1
@@ -310,8 +311,8 @@ impl<W: Write> Writer<W> {
                         0b100
                     } else {
                         0
-                    } | if try_block.finally.is_some() { 0b10 } else { 0 } |
-                        if try_block.catch.is_some() { 0b1 } else { 0 },
+                    } | if try_block.finally.is_some() { 0b10 } else { 0 }
+                        | if try_block.catch.is_some() { 0b1 } else { 0 },
                 )?;
                 self.write_u16(try_length as u16)?;
                 self.write_u16(catch_length as u16)?;
@@ -332,7 +333,9 @@ impl<W: Write> Writer<W> {
                 self.write_u16(frame)?;
                 self.write_u8(num_actions_to_skip)?;
             }
-            Action::WaitForFrame2 { num_actions_to_skip } => {
+            Action::WaitForFrame2 {
+                num_actions_to_skip,
+            } => {
                 self.write_action_header(OpCode::WaitForFrame2, 1)?;
                 self.write_u8(num_actions_to_skip)?;
             }
@@ -431,9 +434,7 @@ mod tests {
             if written_bytes != expected_bytes {
                 panic!(
                     "Error writing action.\nTag:\n{:?}\n\nWrote:\n{:?}\n\nExpected:\n{:?}",
-                    action,
-                    written_bytes,
-                    expected_bytes
+                    action, written_bytes, expected_bytes
                 );
             }
         }

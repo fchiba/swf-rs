@@ -28,9 +28,9 @@ fn read_swf_header<'a, R: Read + 'a>(mut input: R) -> Result<(Swf, Reader<Box<Re
         Compression::Lzma => {
             // Flash uses a mangled LZMA header, so we have to massage it into the normal
             // format.
+            use byteorder::WriteBytesExt;
             use std::io::{Cursor, Write};
             use xz2::stream::{Action, Stream};
-            use byteorder::WriteBytesExt;
             input.read_u32::<LittleEndian>()?; // Compressed length
             let mut lzma_properties = [0u8; 5];
             input.read_exact(&mut lzma_properties)?;
@@ -60,7 +60,7 @@ fn read_swf_header<'a, R: Read + 'a>(mut input: R) -> Result<(Swf, Reader<Box<Re
 
 pub trait SwfRead<R: Read> {
     fn get_version(&self) -> u8;
-    
+
     fn get_inner(&mut self) -> &mut R;
 
     fn read_u8(&mut self) -> Result<u8> {
@@ -126,13 +126,19 @@ pub trait SwfRead<R: Read> {
             use encoding_rs::SHIFT_JIS;
             let (string, _, had_errors) = SHIFT_JIS.decode(&bytes);
             if had_errors {
-                Err(Error::new(ErrorKind::InvalidData, format!("Invalid string data {:?}", bytes)))
+                Err(Error::new(
+                    ErrorKind::InvalidData,
+                    format!("Invalid string data {:?}", bytes),
+                ))
             } else {
                 Ok(string.to_string())
             }
         } else {
             String::from_utf8(bytes).map_err(|bytes| {
-                Error::new(ErrorKind::InvalidData, format!("Invalid string data {:?}", bytes))
+                Error::new(
+                    ErrorKind::InvalidData,
+                    format!("Invalid string data {:?}", bytes),
+                )
             })
         }
     }
@@ -153,7 +159,7 @@ impl<R: Read> SwfRead<R> for Reader<R> {
     fn get_version(&self) -> u8 {
         self.version
     }
-    
+
     fn get_inner(&mut self) -> &mut R {
         &mut self.input
     }
@@ -719,8 +725,9 @@ impl<R: Read> Reader<R> {
             Some(TagCode::FrameLabel) => {
                 let label = tag_reader.read_c_string()?;
                 Tag::FrameLabel {
-                    is_anchor: tag_reader.version >= 6 && length > label.len() + 1 &&
-                        tag_reader.read_u8()? != 0,
+                    is_anchor: tag_reader.version >= 6
+                        && length > label.len() + 1
+                        && tag_reader.read_u8()? != 0,
                     label: label,
                 }
             }
@@ -795,15 +802,13 @@ impl<R: Read> Reader<R> {
             id: id,
             is_track_as_menu: false,
             records: records,
-            actions: vec![
-                ButtonAction {
-                    conditions: vec![ButtonActionCondition::OverDownToOverUp]
-                        .into_iter()
-                        .collect(),
-                    key_code: None,
-                    action_data: action_data,
-                },
-            ],
+            actions: vec![ButtonAction {
+                conditions: vec![ButtonActionCondition::OverDownToOverUp]
+                    .into_iter()
+                    .collect(),
+                key_code: None,
+                action_data: action_data,
+            }],
         })))
     }
 
@@ -2625,12 +2630,12 @@ impl<R: Read> Reader<R> {
 
 #[cfg(test)]
 pub mod tests {
+    use super::*;
     use std::fs::File;
     use std::io::{Cursor, Read};
     use std::vec::Vec;
-    use super::*;
-    use test_data;
     use tag_codes::TagCode;
+    use test_data;
 
     fn reader(data: &[u8]) -> Reader<&[u8]> {
         let default_version = 13;
@@ -2749,22 +2754,8 @@ pub mod tests {
                 .map(|_| reader.read_bit().unwrap())
                 .collect::<Vec<_>>(),
             [
-                false,
-                true,
-                false,
-                true,
-                false,
-                true,
-                false,
-                true,
-                false,
-                false,
-                true,
-                false,
-                false,
-                true,
-                false,
-                true
+                false, true, false, true, false, true, false, true, false, false, true, false,
+                false, true, false, true
             ]
         );
     }
@@ -2813,13 +2804,7 @@ pub mod tests {
     #[test]
     fn read_fixed8() {
         let buf = [
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000001,
-            0b10000000,
-            0b00000110,
-            0b01000000,
+            0b00000000, 0b00000000, 0b00000000, 0b00000001, 0b10000000, 0b00000110, 0b01000000,
             0b11101011,
         ];
         let mut reader = Reader::new(&buf[..], 1);
@@ -3078,8 +3063,7 @@ pub mod tests {
                 // Failed, result doesn't match.
                 panic!(
                     "Incorrectly parsed tag.\nRead:\n{:?}\n\nExpected:\n{:?}",
-                    parsed_tag,
-                    expected_tag
+                    parsed_tag, expected_tag
                 );
             }
         }

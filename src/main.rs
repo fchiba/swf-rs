@@ -12,10 +12,10 @@
 extern crate byteorder;
 #[macro_use]
 extern crate enum_primitive;
+extern crate encoding_rs;
 extern crate flate2;
 extern crate num;
 extern crate xz2;
-extern crate encoding_rs;
 #[macro_use]
 extern crate log;
 
