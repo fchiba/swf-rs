@@ -6,7 +6,6 @@ use num::FromPrimitive;
 use std::collections::HashSet;
 use std::io::{Error, ErrorKind, Read, Result};
 use types::*;
-use xz2::read::XzDecoder;
 
 /// Reads SWF data from a stream.
 pub fn read_swf<R: Read>(input: R) -> Result<Swf> {
@@ -26,6 +25,8 @@ fn read_swf_header<'a, R: Read + 'a>(mut input: R) -> Result<(Swf, Reader<Box<Re
         Compression::None => Box::new(input),
         Compression::Zlib => Box::new(ZlibDecoder::new(input)),
         Compression::Lzma => {
+            unimplemented!(); // TODO: Use gendx/lzma-rs
+            /*
             // Flash uses a mangled LZMA header, so we have to massage it into the normal
             // format.
             use byteorder::WriteBytesExt;
@@ -40,6 +41,7 @@ fn read_swf_header<'a, R: Read + 'a>(mut input: R) -> Result<(Swf, Reader<Box<Re
             let mut lzma_stream = Stream::new_lzma_decoder(u64::max_value())?;
             lzma_stream.process(&lzma_header.into_inner(), &mut [0u8; 1], Action::Run)?;
             Box::new(XzDecoder::new_stream(input, lzma_stream))
+            */
         }
     };
 
@@ -2714,10 +2716,12 @@ pub mod tests {
             read_from_file("tests/swfs/zlib.swf").compression,
             Compression::Zlib
         );
+        /*
         assert_eq!(
             read_from_file("tests/swfs/lzma.swf").compression,
             Compression::Lzma
         );
+        */
     }
 
     #[test]

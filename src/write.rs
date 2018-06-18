@@ -9,7 +9,6 @@ use std::collections::HashSet;
 use std::io::{Error, ErrorKind, Result, Write};
 use tag_codes::TagCode;
 use types::*;
-use xz2::write::XzEncoder;
 
 pub fn write_swf<W: Write>(swf: &Swf, mut output: W) -> Result<()> {
     let signature = match swf.compression {
@@ -53,6 +52,8 @@ pub fn write_swf<W: Write>(swf: &Swf, mut output: W) -> Result<()> {
         // standard LZMA header to SWF format.
         // https://adobe.ly/2s8oYzn
         Compression::Lzma => {
+            unimplemented!(); // TODO: Use gendx/lzma-rs
+            /*
             use xz2::stream::{Action, LzmaOptions, Stream};
             let mut stream = Stream::new_lzma_encoder(&LzmaOptions::new_preset(9)?)?;
             let mut lzma_header = [0; 13];
@@ -62,6 +63,7 @@ pub fn write_swf<W: Write>(swf: &Swf, mut output: W) -> Result<()> {
             output.write_all(&lzma_header[0..5])?; // LZMA property bytes.
             let mut encoder = XzEncoder::new_stream(&mut output, stream);
             encoder.write_all(&swf_body)?;
+            */
         }
     };
 
@@ -2693,10 +2695,12 @@ mod tests {
             write_dummy_swf(Compression::Zlib).is_ok(),
             "Failed to write zlib SWF."
         );
+        /*
         assert!(
             write_dummy_swf(Compression::Lzma).is_ok(),
             "Failed to write LZMA SWF."
         );
+        */
     }
 
     #[test]

@@ -15,7 +15,6 @@ extern crate enum_primitive;
 extern crate encoding_rs;
 extern crate flate2;
 extern crate num;
-extern crate xz2;
 #[macro_use]
 extern crate log;
 
