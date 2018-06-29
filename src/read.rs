@@ -41,8 +41,7 @@ fn read_swf_header<'a, R: Read + 'a>(mut input: R) -> Result<(Swf, Reader<Box<Re
             let mut lzma_stream = Stream::new_lzma_decoder(u64::max_value())?;
             lzma_stream.process(&lzma_header.into_inner(), &mut [0u8; 1], Action::Run)?;
             Box::new(XzDecoder::new_stream(input, lzma_stream))
-            */
-        }
+            */        }
     };
 
     let mut reader = Reader::new(decompressed_input, version);
