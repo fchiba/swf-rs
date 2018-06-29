@@ -185,7 +185,27 @@ impl<R: Read> Reader<R> {
             0x1c => Multiname::MultinameLA {
                 namespace_set: self.read_index()?,
             },
-            _ => return Err(Error::new(ErrorKind::InvalidData, "Invalid multiname kind")),
+            0x1d => {
+                let name = self.read_index()?;
+                let num_params = self.read_u30()?;
+                if num_params != 1 {
+                    panic!("Unexpected num_params {}", num_params);
+                }
+                let mut params = Vec::new();
+                for _ in 0..num_params {
+                    params.push(self.read_index()?);
+                }
+                Multiname::Typename {
+                    name: name,
+                    params: params,
+                }
+            }
+            _ => {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                    format!("Invalid multiname kind: {}", kind),
+                ))
+            }
         })
     }
 
