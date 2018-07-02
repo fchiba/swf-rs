@@ -57,6 +57,7 @@ pub enum Action {
     Greater,
     If {
         offset: i16,
+        jump_to: i16,
     },
     ImplementsOp,
     Increment,
@@ -65,6 +66,7 @@ pub enum Action {
     InstanceOf,
     Jump {
         offset: i16,
+        jump_to: i16,
     },
     Less,
     Less2,
@@ -130,13 +132,7 @@ pub enum Action {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ActionWithSize {
-    pub action: Action,
-    pub size: u64,
-}
-
-pub type ActionList = Vec<ActionWithSize>;
+pub type ActionList = Vec<Action>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {

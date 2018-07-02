@@ -2369,8 +2369,22 @@ pub fn avm1_tests() -> Vec<Avm1TestData> {
             Action::GotoLabel("testb".to_string()),
             vec![0x8C, 6, 0, 116, 101, 115, 116, 98, 0],
         ),
-        (4, Action::If { offset: 1 }, vec![0x9D, 2, 0, 1, 0]),
-        (4, Action::Jump { offset: 1 }, vec![0x99, 2, 0, 1, 0]),
+        (
+            4,
+            Action::If {
+                offset: 1,
+                jump_to: 0,
+            },
+            vec![0x9D, 2, 0, 1, 0],
+        ),
+        (
+            4,
+            Action::Jump {
+                offset: 1,
+                jump_to: 0,
+            },
+            vec![0x99, 2, 0, 1, 0],
+        ),
         (4, Action::Less, vec![0x0F]),
         (4, Action::MBAsciiToChar, vec![0x37]),
         (4, Action::MBCharToAscii, vec![0x36]),

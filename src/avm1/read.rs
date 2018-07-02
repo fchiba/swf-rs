@@ -1,6 +1,7 @@
 use avm1::opcode::OpCode;
 use avm1::types::*;
 use read::SwfRead;
+use std::collections::HashMap;
 use std::io::{Error, ErrorKind, Read, Result};
 
 pub struct Reader<R: Read> {
@@ -28,13 +29,34 @@ impl<R: Read> Reader<R> {
 
     pub fn read_action_list(&mut self) -> Result<ActionList> {
         let mut actions = Vec::new();
-        while let Some(action) = try!(self.read_action()) {
-            actions.push(action);
+        let mut positions = Vec::new();
+        let mut position = 0;
+        while let Some(action_with_size) = try!(self.read_action()) {
+            actions.push(action_with_size.0);
+            positions.push(position);
+            position += action_with_size.1;
         }
+        let position_to_idx: HashMap<usize, usize> = positions
+            .iter()
+            .enumerate()
+            .map(|(idx, pos)| (*pos, idx))
+            .collect();
+
+        for (idx, action) in actions.iter_mut().enumerate() {
+            match action {
+                Action::If { offset, jump_to } | Action::Jump { offset, jump_to } => {
+                    let current_pos = positions[idx];
+                    let next_pos = current_pos + *offset as usize;
+                    *jump_to = position_to_idx[&next_pos] as i16 + 1;
+                }
+                _ => {}
+            }
+        }
+
         Ok(actions)
     }
 
-    pub fn read_action(&mut self) -> Result<Option<ActionWithSize>> {
+    pub fn read_action(&mut self) -> Result<Option<(Action, usize)>> {
         let (opcode, length) = try!(self.read_opcode_and_length());
         trace!("opcode {} length {}", opcode, length);
 
@@ -139,6 +161,7 @@ impl<R: Read> Reader<R> {
                     OpCode::Greater => Action::Greater,
                     OpCode::If => Action::If {
                         offset: try!(action_reader.read_i16()),
+                        jump_to: 0, // update later
                     },
                     OpCode::ImplementsOp => Action::ImplementsOp,
                     OpCode::Increment => Action::Increment,
@@ -147,6 +170,7 @@ impl<R: Read> Reader<R> {
                     OpCode::InstanceOf => Action::InstanceOf,
                     OpCode::Jump => Action::Jump {
                         offset: try!(action_reader.read_i16()),
+                        jump_to: 0, // update later
                     },
                     OpCode::Less => Action::Less,
                     OpCode::Less2 => Action::Less2,
@@ -236,11 +260,7 @@ impl<R: Read> Reader<R> {
                     (&mut self.inner as &mut Read).take(code_length as u64),
                     self.version,
                 );
-                let mut actions = Vec::new();
-                while let Ok(Some(action)) = fn_reader.read_action() {
-                    // no try!
-                    actions.push(action);
-                }
+                let actions = fn_reader.read_action_list()?;
 
                 Action::DefineFunction {
                     name: name,
@@ -253,11 +273,7 @@ impl<R: Read> Reader<R> {
                     (&mut self.inner as &mut Read).take(code_length as u64),
                     self.version,
                 );
-                let mut actions = Vec::new();
-                while let Ok(Some(action)) = fn_reader.read_action() {
-                    // no try!
-                    actions.push(action);
-                }
+                let actions = fn_reader.read_action_list()?;
                 function.actions = actions;
                 Action::DefineFunction2(function)
             }
@@ -265,10 +281,7 @@ impl<R: Read> Reader<R> {
         };
 
         let size = if length == 0 { 1 } else { 1 + 2 + length };
-        Ok(Some(ActionWithSize {
-            action: action,
-            size: size as u64,
-        }))
+        Ok(Some((action, size)))
     }
 
     pub fn read_opcode_and_length(&mut self) -> Result<(u8, usize)> {
@@ -413,7 +426,7 @@ pub mod tests {
         for (swf_version, expected_action, action_bytes) in test_data::avm1_tests() {
             let mut reader = Reader::new(&action_bytes[..], swf_version);
             let parsed_action = reader.read_action().unwrap().unwrap();
-            if parsed_action.action != expected_action {
+            if parsed_action.0 != expected_action {
                 // Failed, result doesn't match.
                 panic!(
                     "Incorrectly parsed action.\nRead:\n{:?}\n\nExpected:\n{:?}",

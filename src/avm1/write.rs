@@ -24,7 +24,7 @@ impl<W: Write> Writer<W> {
 
     pub fn write_action_list(&mut self, actions: &ActionList) -> Result<()> {
         for action in actions {
-            try!(self.write_action(&action.action));
+            try!(self.write_action(&action));
         }
         try!(self.write_u8(0)); // End
         Ok(())
@@ -194,7 +194,7 @@ impl<W: Write> Writer<W> {
                 self.write_c_string(label)?;
             }
             Action::Greater => self.write_action_header(OpCode::Greater, 0)?,
-            Action::If { offset } => {
+            Action::If { offset, jump_to: _ } => {
                 self.write_action_header(OpCode::If, 2)?;
                 self.write_i16(offset)?;
             }
@@ -203,7 +203,7 @@ impl<W: Write> Writer<W> {
             Action::InitArray => self.write_action_header(OpCode::InitArray, 0)?,
             Action::InitObject => self.write_action_header(OpCode::InitObject, 0)?,
             Action::InstanceOf => self.write_action_header(OpCode::InstanceOf, 0)?,
-            Action::Jump { offset } => {
+            Action::Jump { offset, jump_to: _ } => {
                 self.write_action_header(OpCode::Jump, 2)?;
                 self.write_i16(offset)?;
             }
