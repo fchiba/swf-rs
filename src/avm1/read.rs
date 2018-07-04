@@ -29,25 +29,32 @@ impl<R: Read> Reader<R> {
 
     pub fn read_action_list(&mut self) -> Result<ActionList> {
         let mut actions = Vec::new();
-        let mut positions = Vec::new();
+        let mut positions = vec![0];
         let mut position = 0;
         while let Some(action_with_size) = try!(self.read_action()) {
             actions.push(action_with_size.0);
-            positions.push(position);
             position += action_with_size.1;
+            positions.push(position);
         }
         let position_to_idx: HashMap<usize, usize> = positions
             .iter()
             .enumerate()
             .map(|(idx, pos)| (*pos, idx))
             .collect();
+        trace!("potions {:?}", positions);
+        trace!("position_to_idx {:?}", position_to_idx);
 
         for (idx, action) in actions.iter_mut().enumerate() {
             match action {
                 Action::If { offset, jump_to } | Action::Jump { offset, jump_to } => {
-                    let current_pos = positions[idx + 1];
-                    let next_pos = current_pos + *offset as usize;
+                    trace!("offset {}", offset);
+                    trace!("current_idx {}", idx);
+                    let current_pos = positions[idx + 1] as i16;
+                    trace!("current_pos {}", current_pos);
+                    let next_pos = (current_pos + *offset) as usize;
+                    trace!("next_pos {}", next_pos);
                     *jump_to = position_to_idx[&next_pos] as i16;
+                    trace!("next_idx {}", position_to_idx[&next_pos]);
                 }
                 _ => {}
             }
