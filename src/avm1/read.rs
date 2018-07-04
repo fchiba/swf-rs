@@ -57,7 +57,16 @@ impl<R: Read> Reader<R> {
     }
 
     pub fn read_action(&mut self) -> Result<Option<(Action, usize)>> {
-        let (opcode, length) = try!(self.read_opcode_and_length());
+        let result = self.read_opcode_and_length();
+        if let Err(err) = result {
+            use std::io::ErrorKind::UnexpectedEof;
+            if err.kind() == UnexpectedEof {
+                return Ok(None);
+            } else {
+                return Err(err);
+            }
+        }
+        let (opcode, length) = result.unwrap();
         trace!("opcode {} length {}", opcode, length);
 
         let mut action;
