@@ -45,9 +45,9 @@ impl<R: Read> Reader<R> {
         for (idx, action) in actions.iter_mut().enumerate() {
             match action {
                 Action::If { offset, jump_to } | Action::Jump { offset, jump_to } => {
-                    let current_pos = positions[idx];
+                    let current_pos = positions[idx + 1];
                     let next_pos = current_pos + *offset as usize;
-                    *jump_to = position_to_idx[&next_pos] as i16 + 1;
+                    *jump_to = position_to_idx[&next_pos] as i16;
                 }
                 _ => {}
             }
