@@ -13,7 +13,7 @@ extern crate byteorder;
 #[macro_use]
 extern crate enum_primitive;
 extern crate encoding_rs;
-extern crate flate2;
+extern crate libflate;
 extern crate num;
 #[macro_use]
 extern crate log;

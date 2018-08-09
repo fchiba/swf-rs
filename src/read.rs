@@ -1,7 +1,7 @@
-#![cfg_attr(any(feature="clippy", feature="cargo-clippy"), allow(float_cmp))]
+#![cfg_attr(any(feature = "clippy", feature = "cargo-clippy"), allow(float_cmp))]
 
 use byteorder::{LittleEndian, ReadBytesExt};
-use flate2::read::ZlibDecoder;
+use libflate::zlib::Decoder;
 use num::FromPrimitive;
 use std::collections::HashSet;
 use std::io::{Error, ErrorKind, Read, Result};
@@ -23,7 +23,7 @@ fn read_swf_header<'a, R: Read + 'a>(mut input: R) -> Result<(Swf, Reader<Box<Re
     // Now the SWF switches to a compressed stream.
     let decompressed_input: Box<Read> = match compression {
         Compression::None => Box::new(input),
-        Compression::Zlib => Box::new(ZlibDecoder::new(input)),
+        Compression::Zlib => Box::new(Decoder::new(input).unwrap()),
         Compression::Lzma => {
             unimplemented!(); // TODO: Use gendx/lzma-rs
             /*

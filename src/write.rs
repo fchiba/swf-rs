@@ -1,9 +1,8 @@
-#![cfg_attr(any(feature="clippy", feature="cargo-clippy"), allow(cyclomatic_complexity))]
-#![cfg_attr(any(feature="clippy", feature="cargo-clippy"), allow(float_cmp))]
+#![cfg_attr(any(feature = "clippy", feature = "cargo-clippy"), allow(cyclomatic_complexity))]
+#![cfg_attr(any(feature = "clippy", feature = "cargo-clippy"), allow(float_cmp))]
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use flate2::write::ZlibEncoder;
-use flate2::Compression as ZlibCompression;
+use libflate::zlib::Encoder;
 use std::cmp::max;
 use std::collections::HashSet;
 use std::io::{Error, ErrorKind, Result, Write};
@@ -43,7 +42,7 @@ pub fn write_swf<W: Write>(swf: &Swf, mut output: W) -> Result<()> {
         }
 
         Compression::Zlib => {
-            let mut encoder = ZlibEncoder::new(&mut output, ZlibCompression::Best);
+            let mut encoder = Encoder::new(&mut output).unwrap();
             encoder.write_all(&swf_body)?;
         }
 
@@ -1144,7 +1143,8 @@ impl<W: Write> Writer<W> {
             } else {
                 writer.write_u8(num_fill_styles as u8)?;
             }
-            for (start, end) in data.start
+            for (start, end) in data
+                .start
                 .fill_styles
                 .iter()
                 .zip(data.end.fill_styles.iter())
@@ -1158,7 +1158,8 @@ impl<W: Write> Writer<W> {
             } else {
                 writer.write_u8(num_line_styles as u8)?;
             }
-            for (start, end) in data.start
+            for (start, end) in data
+                .start
                 .line_styles
                 .iter()
                 .zip(data.end.line_styles.iter())
@@ -2442,12 +2443,14 @@ impl<W: Write> Writer<W> {
             writer.write_character_id(text.id)?;
             writer.write_rectangle(&text.bounds)?;
             writer.write_matrix(&text.matrix)?;
-            let num_glyph_bits = text.records
+            let num_glyph_bits = text
+                .records
                 .iter()
                 .flat_map(|r| r.glyphs.iter().map(|g| count_ubits(g.index)))
                 .max()
                 .unwrap_or(0);
-            let num_advance_bits = text.records
+            let num_advance_bits = text
+                .records
                 .iter()
                 .flat_map(|r| r.glyphs.iter().map(|g| count_sbits(g.advance)))
                 .max()

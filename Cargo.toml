@@ -12,10 +12,10 @@ description = "Read and write the Adobe Flash SWF file format."
 clippy = {version = "*", optional = true}
 byteorder = "1.0"
 enum_primitive = "0.1.1"
-flate2 = "0.2.17"
 num = "0.1"
 encoding_rs = "*"
 log = "0.4"
+libflate = "*"
 
 [features]
 default = []
